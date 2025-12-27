@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>台指期 K 線</title>
+  <style>
+    body{margin:0;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
+    .wrap{max-width:1000px;margin:0 auto;padding:12px}
+    .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    select,button{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:12px;padding:10px 12px;font-weight:800}
+    .card{margin-top:10px;border:1px solid #334155;border-radius:14px;overflow:hidden;background:#0b1120}
+    #tv{height:75vh;min-height:520px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <b>台指期 K 線</b>
+      <select id="sym">
+        <option value="TAIFEX:TXF1!">TXF1!（連續近月）</option>
+        <option value="TAIFEX:TXF2!">TXF2!（連續次月）</option>
+        <option value="TAIFEX:TXF">TXF（預設）</option>
+      </select>
+      <select id="tf">
+        <option value="5">5分</option>
+        <option value="15">15分</option>
+        <option value="60" selected>60分</option>
+        <option value="240">240分</option>
+        <option value="D">日</option>
+      </select>
+    </div>
+
+    <div class="card"><div id="tv"></div></div>
+  </div>
+
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script>
+    function mount(){
+      const symbol = document.getElementById('sym').value;
+      const interval = document.getElementById('tf').value;
+      document.getElementById('tv').innerHTML = "";
+      new TradingView.widget({
+        autosize:true,
+        symbol,
+        interval,
+        timezone:"Asia/Taipei",
+        theme:"dark",
+        style:"1",
+        locale:"zh_TW",
+        hide_side_toolbar:false,
+        allow_symbol_change:false,
+        container_id:"tv"
+      });
+    }
+    document.getElementById('sym').addEventListener('change', mount);
+    document.getElementById('tf').addEventListener('change', mount);
+    mount();
+  </script>
+</body>
+</html>
