@@ -1,61 +1,104 @@
 <!doctype html>
 <html lang="zh-TW">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>台指期 K 線</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>台指期全期別K線（穩定版）</title>
   <style>
-    body{margin:0;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
-    .wrap{max-width:1000px;margin:0 auto;padding:12px}
+    :root{--bg:#0f172a;--card:#0b1120;--line:#334155;--text:#e2e8f0;--muted:#94a3b8}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
+    .wrap{max-width:1100px;margin:0 auto;padding:14px}
     .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    select,button{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:12px;padding:10px 12px;font-weight:800}
-    .card{margin-top:10px;border:1px solid #334155;border-radius:14px;overflow:hidden;background:#0b1120}
-    #tv{height:75vh;min-height:520px}
+    select,button{background:#1e293b;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:900}
+    button{cursor:pointer}
+    .card{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    iframe{width:100%;height:78vh;min-height:560px;border:0}
+    .hint{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.6}
+    code{background:#111827;border:1px solid #1f2937;padding:2px 6px;border-radius:8px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="bar">
-      <b>台指期 K 線</b>
+      <b>台指期 K 線（全期別）</b>
+
       <select id="sym">
-        <option value="TAIFEX:TXF1!">TXF1!（連續近月）</option>
-        <option value="TAIFEX:TXF2!">TXF2!（連續次月）</option>
-        <option value="TAIFEX:TXF">TXF（預設）</option>
+        <!-- 連續近月：一定可用 -->
+        <option value="TAIFEX:TXF1!">TXF1! 連續近月</option>
+
+        <!-- ✅ 你要「所有期別」：把 Contracts 清單看到的代號加在這裡
+             Contracts 裡常見像：TTXFF2026 / TTXFG2026 / TTXFH2026 ... :contentReference[oaicite:3]{index=3} -->
+        <!-- 範例（示範格式，請以 Contracts 清單為準）：
+        <option value="TAIFEX:TTXFF2026">TTXFF2026 (Jan 2026)</option>
+        <option value="TAIFEX:TTXFG2026">TTXFG2026 (Feb 2026)</option>
+        <option value="TAIFEX:TTXFH2026">TTXFH2026 (Mar 2026)</option>
+        -->
       </select>
+
       <select id="tf">
+        <option value="1">1分</option>
         <option value="5">5分</option>
         <option value="15">15分</option>
         <option value="60" selected>60分</option>
         <option value="240">240分</option>
         <option value="D">日</option>
+        <option value="W">週</option>
       </select>
+
+      <button id="openContracts">開「到期合約清單」</button>
     </div>
 
-    <div class="card"><div id="tv"></div></div>
+    <div class="card">
+      <iframe id="tvFrame" title="TradingView Chart"></iframe>
+    </div>
+
+    <div class="hint">
+      若你現在只要能看K線：用 <code>TXF1!</code> 就夠了（最穩）。:contentReference[oaicite:4]{index=4}<br/>
+      要加所有期別：點「到期合約清單」，把裡面每個合約代號（像 <code>TTXFF2026</code>）加進下拉。:contentReference[oaicite:5]{index=5}
+    </div>
   </div>
 
-  <script src="https://s3.tradingview.com/tv.js"></script>
   <script>
-    function mount(){
-      const symbol = document.getElementById('sym').value;
-      const interval = document.getElementById('tf').value;
-      document.getElementById('tv').innerHTML = "";
-      new TradingView.widget({
-        autosize:true,
-        symbol,
-        interval,
-        timezone:"Asia/Taipei",
-        theme:"dark",
-        style:"1",
-        locale:"zh_TW",
-        hide_side_toolbar:false,
-        allow_symbol_change:false,
-        container_id:"tv"
+    function makeEmbedUrl(symbol, interval){
+      const params = new URLSearchParams({
+        symbol: symbol,
+        interval: interval,
+        timezone: "Asia/Taipei",
+        theme: "dark",
+        style: "1",
+        locale: "zh_TW",
+        toolbarbg: "rgba(15,23,42,1)",
+        hideideas: "1",
+        withdateranges: "1",
+        studyno: "",
+        studies: "[]",
+        enabled_features: "[]",
+        disabled_features: "[]"
       });
+      return "https://www.tradingview.com/widgetembed/?" + params.toString();
     }
-    document.getElementById('sym').addEventListener('change', mount);
-    document.getElementById('tf').addEventListener('change', mount);
-    mount();
-  </script>
-</body>
-</html>
+
+    function mount(){
+      const sym = document.getElementById("sym").value;
+      const tf  = document.getElementById("tf").value;
+      localStorage.setItem("txf_sym", sym);
+      localStorage.setItem("txf_tf", tf);
+      document.getElementById("tvFrame").src = makeEmbedUrl(sym, tf);
+    }
+
+    // restore
+    const lastSym = localStorage.getItem("txf_sym");
+    const lastTf  = localStorage.getItem("txf_tf");
+    if(lastSym){
+      const opt = [...document.querySelectorAll("#sym option")].find(o=>o.value===lastSym);
+      if(opt) document.getElementById("sym").value = lastSym;
+    }
+    if(lastTf) document.getElementById("tf").value = lastTf;
+
+    document.getElementById("sym").addEventListener("change", mount);
+    document.getElementById("tf").addEventListener("change", mount);
+
+    document.getElementById("openContracts").addEventListener("click", ()=>{
+      // 這頁會列出所有到期合約（照到期日排序） :contentReference[oaicite:6]{index=6}
+      window.open("https://www.tradingview.com/symbols/TAIFEX-TXF1!/contracts/", "_blank");
+    });
