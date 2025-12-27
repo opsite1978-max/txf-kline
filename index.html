@@ -1,104 +1,215 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>台指期全期別K線（穩定版）</title>
-  <style>
-    :root{--bg:#0f172a;--card:#0b1120;--line:#334155;--text:#e2e8f0;--muted:#94a3b8}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
-    .wrap{max-width:1100px;margin:0 auto;padding:14px}
-    .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    select,button{background:#1e293b;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:900}
-    button{cursor:pointer}
-    .card{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-    iframe{width:100%;height:78vh;min-height:560px;border:0}
-    .hint{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.6}
-    code{background:#111827;border:1px solid #1f2937;padding:2px 6px;border-radius:8px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>台指決策核心 V17.1 (Breakout)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --input-bg: #334155; --text: #f1f5f9; --red: #ef4444; --green: #10b981; --gold: #f59e0b; --blue: #3b82f6; --purple: #a855f7; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; padding-bottom: 100px; -webkit-font-smoothing: antialiased; }
+        .app-container { max-width: 600px; margin: 0 auto; background: var(--card); min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .header { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #334155; }
+        h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 0.5px; background: linear-gradient(90deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+        .portal-bar { display: flex; gap: 10px; padding: 12px 15px; background: #0b1120; overflow-x: auto; border-bottom: 1px solid #333; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .portal-bar::-webkit-scrollbar { display: none; }
+        .portal-btn { flex: 0 0 auto; padding: 8px 14px; border-radius: 20px; font-size: 12px; text-decoration: none; color: #cbd5e1; border: 1px solid #475569; transition: 0.2s; display: flex; align-items: center; gap: 6px; background: #1e293b; font-weight: 500; }
+        .portal-btn:active { transform: scale(0.95); background: #334155; border-color: var(--blue); color: #fff; }
+
+        .chart-wrapper { padding: 15px; background: #0b1120; border-bottom: 1px solid #333; }
+        .chart-container { position: relative; height: 200px; width: 100%; }
+
+        .btn-group { padding: 15px; display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 10px; }
+        .btn { padding: 14px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-auto { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .btn-record { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-clear { background: #475569; }
+
+        .section { padding: 0 20px 15px 20px; animation: fadeIn 0.5s ease; }
+        .section-title { font-size: 13px; color: #94a3b8; font-weight: 700; margin-bottom: 10px; border-left: 4px solid var(--blue); padding-left: 8px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+
+        .row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .col { flex: 1; }
+        label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 5px; font-weight: 500; }
+        input { width: 100%; background: var(--input-bg); border: 1px solid #475569; color: white; padding: 12px; border-radius: 8px; font-size: 18px; font-weight: 700; text-align: center; outline: none; box-sizing: border-box; transition: 0.2s; }
+        input:focus { border-color: var(--blue); background: #1e293b; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
+
+        .hl-input input { border-color: var(--gold); background: #422006; color: #fbbf24; font-size: 22px; }
+        .op-input input { border-color: #8b5cf6; background: #2e1065; color: #d8b4fe; }
+        .total-input input { border-color: #ec4899; background: #500724; color: #fbcfe8; font-size: 20px; }
+
+        .op-radar-box { margin: 10px 0; padding: 15px; background: #111827; border: 1px solid #374151; border-radius: 12px; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+        .op-bar-container { height: 16px; background: #334155; border-radius: 8px; position: relative; margin: 25px 0; overflow: hidden; }
+        .op-marker { position: absolute; top: -4px; bottom: -4px; width: 6px; background: #fff; border-radius: 3px; box-shadow: 0 0 10px #fff; z-index: 10; transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .zone-pressure { position: absolute; right: 0; top: 0; bottom: 0; width: 40%; background: linear-gradient(to left, rgba(239,68,68,0.6), transparent); }
+        .zone-support { position: absolute; left: 0; top: 0; bottom: 0; width: 40%; background: linear-gradient(to right, rgba(16,185,129,0.6), transparent); }
+        .op-space { display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; }
+
+        .key-levels-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #0f172a; padding: 10px; border-radius: 10px; border: 1px solid #334155; }
+        .level-item { text-align: center; padding: 8px 4px; background: #1e293b; border-radius: 6px; }
+        .level-title { font-size: 10px; color: #64748b; margin-bottom: 2px; }
+        .level-val { font-size: 14px; font-weight: 800; color: #fff; }
+        .level-up { color: #ef4444; } .level-mid { color: #f59e0b; } .level-down { color: #10b981; }
+
+        /* ✅ 新增：突破分析面板 */
+        .breakout-box { background:#0b1120; border:1px solid #334155; border-radius:12px; padding:12px; }
+        .breakout-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+        .bcard { background:#111827; border:1px solid #243041; border-radius:10px; padding:10px; }
+        .btitle { font-size:11px; color:#94a3b8; margin-bottom:6px; }
+        .bval { font-size:18px; font-weight:900; }
+        .bsub { font-size:11px; color:#64748b; margin-top:6px; line-height:1.4; }
+        .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #334155; margin-left:6px; }
+        .tag-up { background: rgba(239,68,68,0.15); color:#fca5a5; border-color: rgba(239,68,68,0.35); }
+        .tag-dn { background: rgba(16,185,129,0.15); color:#86efac; border-color: rgba(16,185,129,0.35); }
+        .tag-neu { background: rgba(148,163,184,0.12); color:#cbd5e1; border-color: rgba(148,163,184,0.25); }
+
+        .verdict-box { background: rgba(15, 23, 42, 0.95); padding: 20px; text-align: center; border-top: 1px solid #333; position: sticky; bottom: 0; backdrop-filter: blur(10px); z-index: 90; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border-radius: 20px 20px 0 0; }
+        .verdict { font-size: 26px; font-weight: 900; margin-bottom: 5px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .desc { font-size: 13px; color: #94a3b8; margin-bottom: 10px; }
+        .target-box { display: flex; justify-content: space-between; background: #1e293b; padding: 10px 20px; border-radius: 10px; margin-top: 10px; }
+
+        #loading { display: none; animation: spin 1s infinite linear; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="bar">
-      <b>台指期 K 線（全期別）</b>
 
-      <select id="sym">
-        <!-- 連續近月：一定可用 -->
-        <option value="TAIFEX:TXF1!">TXF1! 連續近月</option>
-
-        <!-- ✅ 你要「所有期別」：把 Contracts 清單看到的代號加在這裡
-             Contracts 裡常見像：TTXFF2026 / TTXFG2026 / TTXFH2026 ... :contentReference[oaicite:3]{index=3} -->
-        <!-- 範例（示範格式，請以 Contracts 清單為準）：
-        <option value="TAIFEX:TTXFF2026">TTXFF2026 (Jan 2026)</option>
-        <option value="TAIFEX:TTXFG2026">TTXFG2026 (Feb 2026)</option>
-        <option value="TAIFEX:TTXFH2026">TTXFH2026 (Mar 2026)</option>
-        -->
-      </select>
-
-      <select id="tf">
-        <option value="1">1分</option>
-        <option value="5">5分</option>
-        <option value="15">15分</option>
-        <option value="60" selected>60分</option>
-        <option value="240">240分</option>
-        <option value="D">日</option>
-        <option value="W">週</option>
-      </select>
-
-      <button id="openContracts">開「到期合約清單」</button>
+<div class="app-container">
+    <div class="header">
+        <h1>台指決策核心 V17.1</h1>
+        <div class="subtitle">戰場地圖 • 價差監控 • 突破分析</div>
     </div>
 
-    <div class="card">
-      <iframe id="tvFrame" title="TradingView Chart"></iframe>
+    <div class="portal-bar">
+        <a href="https://www.wantgoo.com/option/support-resistance" target="_blank" class="portal-btn">🛡️ 玩股OP大量區</a>
+        <a href="https://www.wantgoo.com/futures/institutional-investors/net-open-interest" target="_blank" class="portal-btn">🦁 玩股主力</a>
+        <a href="https://www.wantgoo.com/option/put-call-ratio" target="_blank" class="portal-btn">📊 P/C Ratio</a>
+        <a href="https://www.wantgoo.com/futures/retail-indicator/wmt&" target="_blank" class="portal-btn">🐜 散戶指標</a>
     </div>
 
-    <div class="hint">
-      若你現在只要能看K線：用 <code>TXF1!</code> 就夠了（最穩）。:contentReference[oaicite:4]{index=4}<br/>
-      要加所有期別：點「到期合約清單」，把裡面每個合約代號（像 <code>TTXFF2026</code>）加進下拉。:contentReference[oaicite:5]{index=5}
+    <div class="chart-wrapper">
+        <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+        </div>
     </div>
-  </div>
 
-  <script>
-    function makeEmbedUrl(symbol, interval){
-      const params = new URLSearchParams({
-        symbol: symbol,
-        interval: interval,
-        timezone: "Asia/Taipei",
-        theme: "dark",
-        style: "1",
-        locale: "zh_TW",
-        toolbarbg: "rgba(15,23,42,1)",
-        hideideas: "1",
-        withdateranges: "1",
-        studyno: "",
-        studies: "[]",
-        enabled_features: "[]",
-        disabled_features: "[]"
-      });
-      return "https://www.tradingview.com/widgetembed/?" + params.toString();
-    }
+    <div class="btn-group">
+        <button class="btn btn-auto" onclick="autoFetch()">
+            ⚡ 抓取昨收/波動 <span id="loading">↻</span>
+        </button>
+        <button class="btn btn-record" onclick="recordData()">💾 記錄</button>
+        <button class="btn btn-clear" onclick="clearHistory()">🗑️</button>
+    </div>
 
-    function mount(){
-      const sym = document.getElementById("sym").value;
-      const tf  = document.getElementById("tf").value;
-      localStorage.setItem("txf_sym", sym);
-      localStorage.setItem("txf_tf", tf);
-      document.getElementById("tvFrame").src = makeEmbedUrl(sym, tf);
-    }
+    <div class="section">
+        <div class="section-title">🛡️ 選擇權戰場 (輸入最大量區)</div>
+        <div class="row">
+            <div class="col op-input">
+                <label>地板 (最大 Put)</label>
+                <input type="number" id="op_support" placeholder="例如 28200" oninput="calc()">
+            </div>
+            <div class="col op-input">
+                <label>天花板 (最大 Call)</label>
+                <input type="number" id="op_pressure" placeholder="例如 29000" oninput="calc()">
+            </div>
+        </div>
 
-    // restore
-    const lastSym = localStorage.getItem("txf_sym");
-    const lastTf  = localStorage.getItem("txf_tf");
-    if(lastSym){
-      const opt = [...document.querySelectorAll("#sym option")].find(o=>o.value===lastSym);
-      if(opt) document.getElementById("sym").value = lastSym;
-    }
-    if(lastTf) document.getElementById("tf").value = lastTf;
+        <div class="op-radar-box">
+            <div class="op-space">
+                <span id="space-down" style="color:#10b981;">等待數據</span>
+                <span id="space-up" style="color:#ef4444;">等待數據</span>
+            </div>
+            <div class="op-bar-container">
+                <div class="zone-support"></div>
+                <div class="zone-pressure"></div>
+                <div id="price-marker" class="op-marker" style="left: 50%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#666; font-size:10px;">
+                <span>支撐區</span>
+                <span id="radar-tx" style="color:#fff; font-weight:bold;">--</span>
+                <span>壓力區</span>
+            </div>
+        </div>
+    </div>
 
-    document.getElementById("sym").addEventListener("change", mount);
-    document.getElementById("tf").addEventListener("change", mount);
+    <div class="section">
+        <div class="section-title">
+            <span>1. 價格監控</span>
+            <span id="spread-tag" style="font-size:11px; padding:2px 6px; border-radius:4px; background:#333;">--</span>
+        </div>
+        <div class="row">
+            <div class="col hl-input">
+                <label>📍 台指期 (必填)</label>
+                <input type="number" id="tx" placeholder="輸入目前點數" oninput="calc()">
+            </div>
+            <div class="col">
+                <label>⚖️ 加權指數 (自動)</label>
+                <input type="number" id="spot" disabled placeholder="自動抓取" oninput="calc()">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label>🛡️ P/C Ratio (%)</label>
+                <input type="number" id="pc" placeholder="手動輸入" oninput="calc()">
+            </div>
+            <div class="col">
+                <label>ATR 波動</label>
+                <input type="number" id="atr" oninput="calc()">
+            </div>
+        </div>
+    </div>
 
-    document.getElementById("openContracts").addEventListener("click", ()=>{
-      // 這頁會列出所有到期合約（照到期日排序） :contentReference[oaicite:6]{index=6}
-      window.open("https://www.tradingview.com/symbols/TAIFEX-TXF1!/contracts/", "_blank");
-    });
+    <div class="section">
+        <div class="section-title">2. 主力籌碼</div>
+        <div class="row">
+            <div class="col total-input">
+                <label>🦁 法人總和 (自+投+外)</label>
+                <input type="number" id="total_sum" placeholder="看玩股網填入" oninput="calc()">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. 散戶 (輸入口數)</div>
+        <div style="background:#1e293b; padding:10px; border-radius:8px; border:1px solid #334155;">
+            <div style="font-size:11px; color:#aaa; margin-bottom:5px; text-align:center;">小台 MTX</div>
+            <div class="row" style="margin-bottom:0;">
+                <div class="col">
+                    <input type="number" id="mtx_long" placeholder="多單" style="color:#fca5a5; border-color:#7f1d1d;" oninput="calc()">
+                </div>
+                <div class="col">
+                    <input type="number" id="mtx_short" placeholder="空單" style="color:#86efac; border-color:#064e3b;" oninput="calc()">
+                </div>
+            </div>
+        </div>
+        <div style="height:8px;"></div>
+        <div style="background:#1e293b; padding:10px; border-radius:8px; border:1px solid #334155;">
+            <div style="font-size:11px; color:#aaa; margin-bottom:5px; text-align:center;">微台 TMF</div>
+            <div class="row" style="margin-bottom:0;">
+                <div class="col">
+                    <input type="number" id="tmf_long" placeholder="多單" style="color:#fca5a5; border-color:#7f1d1d;" oninput="calc()">
+                </div>
+                <div class="col">
+                    <input type="number" id="tmf_short" placeholder="空單" style="color:#86efac; border-color:#064e3b;" oninput="calc()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" style="margin-bottom:10px;">
+        <div class="section-title">🔑 參考點位 (昨收計算)</div>
+        <div class="key-levels-box">
+            <div class="level-item"><div class="level-title">上關</div><div id="kp_high" class="level-val level-up">--</div></div>
+            <div class="level-item"><div class="level-title">中關</div><div id="kp_mid" class="level-val level-mid">--</div></div>
+            <div class="level-item"><div class="level-title">下關</div><div id="kp_low" class="level-val level-down">--</div></div>
+            <div class="level-item"><div class="level-title">轉折壓</div><div id="pivot_res" class="level-val level-up">--</div></div>
+            <div class="level-item"><div class="level-title">轉折價</div><div id="pivot_p" class="level-val level-mid">--</div></div>
+            <div class="level-item"><div class="level-title">轉折撐</div><div id="pivot_sup" class="level-val level-down">--</div></div>
+        </
+
